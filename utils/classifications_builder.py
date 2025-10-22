@@ -12,12 +12,6 @@ def build_classification_index(csv_path="../MetObjects.txt"):
         reader = csv.DictReader(f)
         for row in tqdm(reader):
             object_id = row.get("Object ID", "")
-            # The ID needs to be a integer
-            try:
-                object_id = int(object_id)
-            except (ValueError, TypeError):
-                continue
-
             classification = row.get("Classification")
 
             if classification == "":

@@ -10,9 +10,22 @@ class MetAPI:
         self.records_url = "/public/collection/v1/objects"
 
     def get_all_records(self) -> list[int]:
-        all_records = requests.get(f"{BASE_URL}{self.records_url}")
-        if all_records.status_code == 200:
-            return all_records.json()["objectIDs"]
+        response = requests.get(f"{BASE_URL}{self.records_url}")
+        if response.status_code == 200:
+            return response.json()["objectIDs"]
         else:
             logger.error("Failed to fetch all records")
             return []
+
+    def get_single_record(self, record_id):
+        response = requests.get(f"{BASE_URL}{self.records_url}/{record_id}")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error("Failed to fetch all records")
+            return {}
+
+
+ma = MetAPI()
+test = ma.get_single_record(438848)
+pprint(test)
