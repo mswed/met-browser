@@ -1,6 +1,5 @@
 import requests
 from loguru import logger
-from pprint import pprint
 
 BASE_URL = "https://collectionapi.metmuseum.org"
 
@@ -24,8 +23,3 @@ class MetAPI:
         else:
             logger.error("Failed to fetch all records")
             return {}
-
-
-ma = MetAPI()
-test = ma.get_single_record(438848)
-pprint(test)

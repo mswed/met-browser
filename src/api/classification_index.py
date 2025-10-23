@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
+from loguru import logger
 
 
 class ClassificationIndex:
@@ -17,15 +18,14 @@ class ClassificationIndex:
         self.index_path = index_path
         self.data = self.load_index()
 
-    def load_index(self) -> None:
+    def load_index(self) -> Dict:
         """
         Load the index file for processing
         """
 
         with open(self.index_path, "r") as f:
-            self.data = json.load(f)
-
-        return None
+            data = json.load(f)
+            return data
 
     def get_classification_list(self) -> List:
         """
@@ -46,7 +46,9 @@ class ClassificationIndex:
         """
 
         if self.data is not None:
-            return self.data.get("classification_index", {}).get(classification, [])
+            return self.data.get("classification_index", {}).get(classification, [])[
+                :80
+            ]
 
         return []
 
