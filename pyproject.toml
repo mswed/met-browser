@@ -1,15 +1,20 @@
 [project]
 name = "metbrowser"
 version = "0.1.0"
-description = "Add your description here"
+description = "Met Museum Browser for macOS"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "loguru>=0.7.3",
-    "pyside2>=5.15.2.1",
+    "pyside6>=6.10.0",
     "requests>=2.32.5",
     "tqdm>=4.67.1",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools.packages.find]
-where = ["."]  
+where = ["."]
 include = ["src*", "utils*"]
