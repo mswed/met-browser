@@ -1,29 +1,81 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtGui, QtWidgets, QtCore
+import requests
 from src.api.classification_index import ClassificationIndex
 from src.api.met_api import MetAPI
 from pprint import pprint
 
 
-class ResultWidget(QtWidgets.QWidget):
-    def __init__(self, title, medium, parent=None):
+class Image(QtWidgets.QLabel):
+    """
+    Display an image in the UI
+    """
+
+    def __init__(self, size=(200, 200), parent=None):
         super().__init__(parent=parent)
-        self.title = title
-        self.medium = medium
+        self.setFixedSize(*size)
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setScaledContents(False)
+        self.setText("loading...")
+
+    def load_image_from_url(self, image_url):
+        if not image_url:
+            self.setText("No Image")
+            return
+
+        try:
+            response = requests.get(image_url, timeout=10)
+            response.raise_for_status()
+
+            pixmap = QtGui.QPixmap()
+            pixmap.loadFromData(response.content)
+
+            if pixmap.isNull():
+                self.setText("Invalid Image")
+                return
+            scaled_pixmap = pixmap.scaled(
+                self.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            )
+
+            self.setPixmap(scaled_pixmap)
+        except Exception as e:
+            self.setText("Error Loading Image")
+            print(f"Error: Failed to load image {str(e)}")
+
+
+class ResultWidget(QtWidgets.QWidget):
+    def __init__(self, data, parent=None):
+        super().__init__(parent=parent)
+        self.data = data
         self.setup_ui()
 
     def setup_ui(self):
-        main_layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QHBoxLayout()
         self.setLayout(main_layout)
 
-        title_label = QtWidgets.QLabel(self.title)
+        image_column = QtWidgets.QVBoxLayout()
+        main_layout.addLayout(image_column)
+        image = Image()
+        image.load_image_from_url(self.data.get("primaryImageSmall"))
+        image_column.addWidget(image)
+
+        data_column = QtWidgets.QVBoxLayout()
+        main_layout.addLayout(data_column)
+        title_label = QtWidgets.QLabel(self.data.get("title"))
         font = title_label.font()
         font.setBold(True)
         title_label.setFont(font)
 
-        medium_label = QtWidgets.QLabel(self.medium)
+        medium_label = QtWidgets.QLabel(self.data.get("medium"))
+        department_label = QtWidgets.QLabel(self.data.get("department"))
 
-        main_layout.addWidget(title_label)
-        main_layout.addWidget(medium_label)
+        data_column.addWidget(title_label)
+        data_column.addWidget(medium_label)
+        data_column.addWidget(department_label)
+
+        date_column = QtWidgets.QVBoxLayout()
+        main_layout.addLayout(date_column)
+        date_label = QtWidgets.QLabel(self.data.get("objectDate"))
+        date_column.addWidget(date_label)
 
 
 class ClassifictionWidget(QtWidgets.QWidget):
@@ -153,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow):
             result = self.met_api.get_single_record(record)
             pprint(result)
             item = QtWidgets.QListWidgetItem(self.results_list)
-            item_widget = ResultWidget(result.get("title"), result.get("medium"))
+            item_widget = ResultWidget(result)
             item.setSizeHint(item_widget.sizeHint())
             self.results_list.setItemWidget(item, item_widget)
             item.setData(QtCore.Qt.UserRole, result)
