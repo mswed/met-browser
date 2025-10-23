@@ -27,16 +27,15 @@ class ClassificationIndex:
             data = json.load(f)
             return data
 
-    def get_classification_list(self) -> List:
+    def get_classification_list(self) -> Dict:
         """
-        Get all availabe classifications from the index
+        Get all availabe classifications from the index with a record count
         """
 
         if self.data is not None:
-            classifications = list(self.data.get("classification_index").keys())
-            return sorted(classifications)
+            return self.data.get("classification_index", {})
 
-        return []
+        return {}
 
     def get_records_in_classification(self, classification: str) -> List:
         """
@@ -46,9 +45,7 @@ class ClassificationIndex:
         """
 
         if self.data is not None:
-            return self.data.get("classification_index", {}).get(classification, [])[
-                :80
-            ]
+            return self.data.get("classification_index", {}).get(classification, [])
 
         return []
 

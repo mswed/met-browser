@@ -10,3 +10,7 @@ Records in DB: 498172
 Records in local index: 484956
 In DB but not local: 14135
 In local but not DB: 919
+
+## API constraints
+
+During development I noticed that the `hasImages` parameter returns only ~3300 records. I'm not sure if there's something wrong with the API or if that's the actual number. It seems pretty low for the amount of records in the database. While there are other options to collect the data, they would likely mean scanning the entire database to confirm the data accuracy, which, in turn, will hit the API's limit rate making in a process that can last days.
