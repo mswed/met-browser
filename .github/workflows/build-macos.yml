@@ -22,44 +22,28 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install py2app
+          pip install pyinstaller
           pip install loguru pyside6 requests tqdm
 
-      - name: Build app (skip automatic signing)
+      - name: Build with PyInstaller
         run: |
-          # Tell py2app to skip signing
-          export CODESIGN_ALLOCATE=/usr/bin/codesign_allocate
-          python setup.py py2app --no-strip 2>&1 | tee build.log
-        continue-on-error: true
+          pyinstaller --name "Met Browser" \
+            --windowed \
+            --osx-bundle-identifier com.metbrowser \
+            --add-data "data:data" \
+            --hidden-import PySide6.QtCore \
+            --hidden-import PySide6.QtGui \
+            --hidden-import PySide6.QtWidgets \
+            --collect-submodules PySide6 \
+            src/main.py
 
-      - name: Manual sign if build failed
+      - name: Sign the app
         run: |
-          if [ ! -d "dist/Met Browser.app" ]; then
-            echo "Build failed, checking logs..."
-            cat build.log
-            exit 1
-          fi
-
-          echo "App built successfully, now signing manually..."
-
-          # Remove any partial signatures
-          find "dist/Met Browser.app" -name "_CodeSignature" -type d -exec rm -rf {} + 2>/dev/null || true
-
-          # Sign all dylibs and .so files
-          find "dist/Met Browser.app" -type f \( -name "*.dylib" -o -name "*.so" \) -exec codesign --force --sign - --timestamp=none {} \; 2>/dev/null || true
-
-          # Sign frameworks
-          find "dist/Met Browser.app/Contents/Frameworks" -maxdepth 2 -type d -name "*.framework" -exec codesign --force --sign - --timestamp=none {} \; 2>/dev/null || true
-
-          # Sign the executable
-          codesign --force --sign - --timestamp=none "dist/Met Browser.app/Contents/MacOS/"* 2>/dev/null || true
-
-          # Sign the bundle
           codesign --force --deep --sign - --timestamp=none "dist/Met Browser.app"
 
-      - name: Verify signature
+      - name: Verify app was created
         run: |
-          codesign --verify --deep --verbose "dist/Met Browser.app" || echo "Signature verification failed but continuing..."
+          ls -la "dist/Met Browser.app/Contents/MacOS/"
 
       - name: Zip the app
         run: |
