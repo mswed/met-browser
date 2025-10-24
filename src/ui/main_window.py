@@ -3,6 +3,7 @@ import requests
 from src.api.classification_index import ClassificationIndex
 from src.api.met_api import MetAPI
 from src.api.image_record_cache import ImageRecordCache
+from src.ui.worker import Fetcher
 from pprint import pprint
 
 
@@ -132,12 +133,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle("Met Browser")
         self.setMinimumSize(400, 300)
+        self.fetcher_thread = None
         self.local_api = ClassificationIndex()
         self.met_api = MetAPI()
         self.image_cache = ImageRecordCache()
         self.records_with_images = self.image_cache.load_cache()
         self.current_results = []
+        self.setup_progress_bar()
         self.set_ui()
+
+    def setup_progress_bar(self):
+        self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_bar.setMaximumWidth(200)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.hide()
+
+        self.statusBar().addPermanentWidget(self.progress_bar)
 
     def set_ui(self):
         # Main widget setup
@@ -166,6 +177,8 @@ class MainWindow(QtWidgets.QMainWindow):
         search_widget.setLayout(search_layout)
         self.search_field = QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter Classifications...")
+        self.search_field.setClearButtonEnabled(True)
+        self.search_field.textChanged.connect(self.filter_classifications)
         self.has_images = QtWidgets.QCheckBox("Has Images")
         self.has_images.checkStateChanged.connect(self.on_has_images_toggle)
         search_layout.addWidget(self.search_field)
@@ -192,38 +205,66 @@ class MainWindow(QtWidgets.QMainWindow):
         results_column.setLayout(results_layout)
         columns_layout.addWidget(results_column)
 
-        # Sorting (temp label)
         sorting_label = QtWidgets.QLabel("Sort By Date")
+        self.sorting_combo = QtWidgets.QComboBox()
+        self.sorting_combo.addItems(["Ascending", "Descending"])
+        self.sorting_combo.currentIndexChanged.connect(self.populate_results)
+
         results_layout.addWidget(sorting_label)
+        results_layout.addWidget(self.sorting_combo)
+
         self.results_list = QtWidgets.QListWidget()
         self.results_list.currentItemChanged.connect(self.on_result_item_selected)
-        results_layout.addWidget(sorting_label)
         results_layout.addWidget(self.results_list)
 
-        # Details column
-        details_column = QtWidgets.QWidget()
-        details_layout = QtWidgets.QGridLayout()
-        details_column.setLayout(details_layout)
-        columns_layout.addWidget(details_column)
-        details_label = QtWidgets.QLabel("Details")
-        details_layout.addWidget(details_label)
-
     def on_classification_item_selected(self, current, previous):
-        self.statusBar().showMessage("Loading results...")
+        # If we already have a process running stop it
+        if self.fetcher_thread and self.fetcher_thread.isRunning():
+            self.fetcher_thread.quit()
+            self.fetcher_thread.wait()
 
         # Clear existing results
         self.current_results = []
         self.results_list.clear()
 
+        # Get record ids
         widget = self.classifications_list.itemWidget(current)
+        record_ids = widget.filtered_record_ids[:80]
 
-        for record in widget.filtered_record_ids[:80]:
-            result = self.met_api.get_single_record(record)
-            if result:
-                self.current_results.append(result)
-                pprint(result)
+        # Setup the progress bar
+        self.progress_bar.setMaximum(len(record_ids))
+        self.progress_bar.setValue(0)
+        self.progress_bar.show()
 
+        # Start a thread so we don't lock the UI
+        self.fetcher_thread = Fetcher(self.met_api, record_ids)
+        self.fetcher_thread.progress.connect(self.on_fetch_progress)
+        self.fetcher_thread.result_ready.connect(self.on_result_ready)
+        self.fetcher_thread.finished.connect(self.on_fetch_finished)
+        self.fetcher_thread.start()
+
+        self.statusBar().showMessage("Loading results...")
+
+    def on_fetch_progress(self, current, total, message):
+        """
+        Update progress as results load
+        """
+        self.progress_bar.setValue(current)
+        self.statusBar().showMessage(message)
+
+    def on_result_ready(self, result):
+        self.current_results.append(result)
+        self.add_result_item(result)
+
+    def on_fetch_finished(self, results):
+        """
+        All results loaded
+        """
+
+        self.progress_bar.hide()
+        self.current_results = results
         self.populate_results()
+        self.statusBar().showMessage(f"Loaded {len(results)} objects", 3000)
 
     def on_result_item_selected(self, current, previous):
         pprint(current.data(QtCore.Qt.UserRole))
@@ -236,16 +277,20 @@ class MainWindow(QtWidgets.QMainWindow):
             if widget:
                 widget.update_count()
 
+    def add_result_item(self, result):
+        item = QtWidgets.QListWidgetItem(self.results_list)
+        item_widget = ResultWidget(result)
+        item.setSizeHint(item_widget.sizeHint())
+        self.results_list.setItemWidget(item, item_widget)
+        item.setData(QtCore.Qt.UserRole, result)
+
     def populate_results(self):
         self.results_list.clear()
-        sort_results = self.sort_results()
+        sort_direction = self.sorting_combo.currentText()
+        sort_results = self.sort_results(sort_direction.lower())
 
         for result in sort_results:
-            item = QtWidgets.QListWidgetItem(self.results_list)
-            item_widget = ResultWidget(result)
-            item.setSizeHint(item_widget.sizeHint())
-            self.results_list.setItemWidget(item, item_widget)
-            item.setData(QtCore.Qt.UserRole, result)
+            self.add_result_item(result)
 
         self.statusBar().showMessage(f"Loaded {len(sort_results)} results")
 
@@ -255,3 +300,16 @@ class MainWindow(QtWidgets.QMainWindow):
             key=lambda x: x.get("objectBeginDate", 0),
             reverse=direction != "ascending",
         )
+
+    def filter_classifications(self, search_text):
+        search_text = search_text.lower()
+
+        for i in range(self.classifications_list.count()):
+            item = self.classifications_list.item(i)
+            widget = self.classifications_list.itemWidget(item)
+
+            # Get the classification name
+            classification_name = widget.classification.lower()
+
+            # Show/Hide item based on result
+            item.setHidden(search_text not in classification_name)
