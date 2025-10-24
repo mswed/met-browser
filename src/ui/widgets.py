@@ -198,7 +198,7 @@ class ClassificationWidget(QtWidgets.QWidget):
         classification_label.setFont(font)
         # Split long classifications into two lines
         classification_label.setWordWrap(True)
-        classification_label.setMaximumHeight(50)
+        classification_label.setMinimumHeight(40)
         main_layout.addWidget(classification_label)
         main_layout.addStretch()
 
