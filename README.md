@@ -17,4 +17,4 @@ I could not find clear documentation on how to fetch all of the records that hav
 
 I have decided to iterate over the alpahbet and save all found record ids in a local cache that can be updated by the user. While it's unclear how much of the records with images it finds, this method finds 348,803 records which is offers a coverage of ~70%
 
-A secondary issue, is that while the API returns records that are supposed to have an image, if the image is marked as not in the public domain, the image url is not provided. In that case I treat it as if an image was provided and simply mark it as "Image not in the public domain"
+A secondary issue, is that while the API returns records that are supposed to have an image, if the image is marked as not in the public domain, the image url is not provided.In these cases and additional client side filter is applied removing the records without an image and updating the count to be "approximate".

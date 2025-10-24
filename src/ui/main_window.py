@@ -1,4 +1,5 @@
 from PySide6 import QtGui, QtWidgets, QtCore
+from loguru import logger
 import requests
 from src.api.classification_index import ClassificationIndex
 from src.api.met_api import MetAPI
@@ -184,7 +185,11 @@ class ClassifictionWidget(QtWidgets.QWidget):
         main_layout.addWidget(self.count_label)
 
     def update_count(self):
-        self.count_label.setText(str(self.count))
+        if self.main_window.has_images.isChecked():
+            self.count_label.setText(f"~{self.count}")
+            self.count_label.setToolTip("API approximation - some items maybe exluded")
+        else:
+            self.count_label.setText(str(self.count))
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -350,6 +355,9 @@ class MainWindow(QtWidgets.QMainWindow):
         results_layout.addWidget(self.results_list)
 
     def on_classification_item_selected(self, current, previous):
+        if not current:
+            return
+
         # If we already have a process running stop it
         if self.fetcher_thread and self.fetcher_thread.isRunning():
             self.fetcher_thread.quit()
@@ -385,6 +393,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage(message)
 
     def on_result_ready(self, result):
+        # We need to filter results without images since the API is unreliable
+        if self.has_images.isChecked():
+            image_url = result.get("primaryImageSmall")
+
+            if not image_url:
+                # Skip it, there's no image here
+                return
+
         self.current_results.append(result)
         self.add_result_item(result)
 
@@ -409,6 +425,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if widget:
                 widget.update_count()
 
+        current_classification = self.classifications_list.selectedItems()
+        if current_classification:
+            current_classification = current_classification[0]
+        else:
+            current_classification = None
+        # TODO: This re-fatches the records, we should use cache instead
+        self.on_classification_item_selected(current_classification, None)
+
     def add_result_item(self, result):
         item = QtWidgets.QListWidgetItem(self.results_list)
         item_widget = ResultWidget(result)
@@ -422,6 +446,13 @@ class MainWindow(QtWidgets.QMainWindow):
         sort_results = self.sort_results(sort_direction.lower())
 
         for result in sort_results:
+            if self.has_images.isChecked():
+                image_url = result.get("primaryImageSmall")
+
+                if not image_url:
+                    # Skip it, there's no image here
+                    continue
+
             self.add_result_item(result)
 
         self.statusBar().showMessage(f"Loaded {len(sort_results)} results")
