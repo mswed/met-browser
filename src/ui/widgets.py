@@ -194,7 +194,7 @@ class ClassificationWidget(QtWidgets.QWidget):
         classification_label = QtWidgets.QLabel(self.classification)
         font = classification_label.font()
         font.setBold(True)
-        font.setPointSize(10)
+        font.setPointSize(9)
         classification_label.setFont(font)
         # Split long classifications into two lines
         classification_label.setWordWrap(True)
