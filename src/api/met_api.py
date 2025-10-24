@@ -1,3 +1,4 @@
+from typing import Dict
 import requests
 from tqdm import tqdm
 from loguru import logger
@@ -6,11 +7,19 @@ BASE_URL = "https://collectionapi.metmuseum.org"
 
 
 class MetAPI:
+    """
+    Class to access the Met api
+    """
+
     def __init__(self) -> None:
         self.records_url = "/public/collection/v1/objects"
         self.search_url = "/public/collection/v1/search"
 
     def get_all_records(self) -> list[int]:
+        """
+        Get all of the record IDs in the database
+        :returns: List of record IDs
+        """
         response = requests.get(f"{BASE_URL}{self.records_url}")
         if response.status_code == 200:
             return response.json()["objectIDs"]
@@ -18,7 +27,11 @@ class MetAPI:
             logger.error("Failed to fetch all records")
             raise ConnectionError("Failed to fetch all reccords")
 
-    def get_single_record(self, record_id):
+    def get_single_record(self, record_id) -> Dict:
+        """
+        Return all of the data of a single record based on its ID
+        :returns: Dictionary with all of the record data
+        """
         response = requests.get(f"{BASE_URL}{self.records_url}/{record_id}")
         if response.status_code == 200:
             return response.json()
@@ -28,7 +41,10 @@ class MetAPI:
 
     def get_all_records_with_images(self, progress_callback=None) -> set[int]:
         """
-        Fetch all of the records that have an image
+        Fetch all of the records that have an image according to the API. This is problematic since it seems to return
+        records that are not in the public domain
+
+        :returns: Set of record IDs that are marked as having an image in the database
         """
         logger.info("Fetching all records with images")
         records = set()
