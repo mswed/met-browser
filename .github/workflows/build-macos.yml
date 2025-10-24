@@ -3,37 +3,46 @@ name: Build macOS App
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-12 # Uses macOS 12, but targets Big Sur
+    runs-on: macos-latest
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Install Briefcase
-        run: pip install briefcase
-
-      - name: Create app
-        run: briefcase create macOS
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install py2app
+          pip install loguru pyside6 requests tqdm
 
       - name: Build app
-        run: briefcase build macOS
+        run: python setup.py py2app
 
-      - name: Package app
-        run: briefcase package macOS --adhoc-sign
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Met Browser" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --app-drop-link 425 120 \
+            "Met-Browser.dmg" \
+            "dist/Met Browser.app"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
           name: Met-Browser-macOS
-          path: dist/*.dmg
+          path: "*.dmg"
           retention-days: 30
