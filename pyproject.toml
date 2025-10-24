@@ -12,9 +12,37 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["briefcase>=0.3.19"]
+build-backend = "briefcase.platforms.macOS.app"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["src*", "utils*"]
+[tool.briefcase]
+project_name = "Met Browser"
+bundle = "com.metbrowser"
+version = "0.1.0"
+url = "https://github.com/yourusername/metbrowser"
+license = "MIT"
+author = "Moshe Swed"
+author_email = "mswed@bepaot.com"
+
+[tool.briefcase.app.metbrowser]
+formal_name = "Met Browser"
+description = "Metropolitan Museum of Art Browser"
+sources = ["src"]
+requires = [
+    "loguru>=0.7.3",
+    "pyside6>=6.10.0",
+    "requests>=2.32.5",
+    "tqdm>=4.67.1",
+]
+
+app_start_source = "src/main"
+app_start_function = "main"
+
+resources = ["data"]
+
+[tool.briefcase.app.metbrowser.macOS]
+requires = [
+    "std-nslog~=1.0.0",
+]
+# Target Big Sur and later
+deployment_target = "11.0"

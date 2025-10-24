@@ -21,6 +21,7 @@ class ClassificationIndex:
     def load_index(self) -> Dict:
         """
         Load the index file for processing
+        :returns: Dictionary of all record ids in the cache and their classification
         """
 
         with open(self.index_path, "r") as f:
@@ -30,6 +31,7 @@ class ClassificationIndex:
     def get_classification_list(self) -> Dict:
         """
         Get all availabe classifications from the index with a record count
+        :returns: Dictionary of all classifications and their records
         """
 
         if self.data is not None:
@@ -41,7 +43,7 @@ class ClassificationIndex:
         """
         Return the first 80 records in a given classification
         :param classification: Name of classification
-        :return: List of records associated with the classification
+        :returns: List of records associated with the classification
         """
 
         if self.data is not None:

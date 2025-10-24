@@ -1,0 +1,39 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-12 # Uses macOS 12, but targets Big Sur
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Briefcase
+        run: pip install briefcase
+
+      - name: Create app
+        run: briefcase create macOS
+
+      - name: Build app
+        run: briefcase build macOS
+
+      - name: Package app
+        run: briefcase package macOS --adhoc-sign
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Met-Browser-macOS
+          path: dist/*.dmg
+          retention-days: 30
