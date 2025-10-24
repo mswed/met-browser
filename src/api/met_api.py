@@ -16,7 +16,7 @@ class MetAPI:
             return response.json()["objectIDs"]
         else:
             logger.error("Failed to fetch all records")
-            return []
+            raise ConnectionError("Failed to fetch all reccords")
 
     def get_single_record(self, record_id):
         response = requests.get(f"{BASE_URL}{self.records_url}/{record_id}")
@@ -24,7 +24,7 @@ class MetAPI:
             return response.json()
         else:
             logger.error(f"Failed to fetch record {record_id}")
-            return {}
+            raise ConnectionError(f"Failed to fetch record {record_id}")
 
     def get_all_records_with_images(self) -> set[int]:
         """
@@ -61,14 +61,17 @@ class MetAPI:
             "z",
         ]
         for letter in tqdm(abc):
-            all_search_records = requests.get(
+            response = requests.get(
                 f"{BASE_URL}/public/collection/v1/search?hasImages=true&q={letter}"
             )
 
-            found = all_search_records.json().get("objectIDs")
-            for f in found:
-                records.add(f)
+            if response.status_code == 200:
+                found = response.json().get("objectIDs")
+                for f in found:
+                    records.add(f)
 
-            logger.info(f"Collected {len(list(records))} records")
+                logger.info(f"Collected {len(list(records))} records")
+            else:
+                raise ConnectionError(f"Failed to fetch records for {letter}")
 
         return records

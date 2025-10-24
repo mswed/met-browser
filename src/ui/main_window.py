@@ -360,7 +360,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # If we already have a process running stop it
         if self.fetcher_thread and self.fetcher_thread.isRunning():
-            self.fetcher_thread.quit()
+            self.fetcher_thread.stop()
             self.fetcher_thread.wait()
 
         # Clear existing results
@@ -381,6 +381,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fetcher_thread.progress.connect(self.on_fetch_progress)
         self.fetcher_thread.result_ready.connect(self.on_result_ready)
         self.fetcher_thread.finished.connect(self.on_fetch_finished)
+        self.fetcher_thread.error.connect(self.on_fetch_error)
         self.fetcher_thread.start()
 
         self.statusBar().showMessage("Loading results...")
@@ -413,6 +414,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_results = results
         self.populate_results()
         self.statusBar().showMessage(f"Loaded {len(results)} objects", 3000)
+
+    def on_fetch_error(self, error_message):
+        # Stop the thread
+        if self.fetcher_thread and self.fetcher_thread.isRunning():
+            self.fetcher_thread.stop()
+            self.fetcher_thread.wait(1000)
+
+        self.progress_bar.hide()
+
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Failed to load results",
+            f"Failed to load results from the Met! This is likely do to rate limit issues. Please wait at least 60 seconds and try again",
+            QtWidgets.QMessageBox.Ok,
+        )
+
+        self.statusBar().showMessage("Failed to load results...", 3000)
 
     def on_result_item_selected(self, current, previous):
         pprint(current.data(QtCore.Qt.UserRole))
