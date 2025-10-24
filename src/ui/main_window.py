@@ -17,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__(parent)
 
         self.setWindowTitle("Met Browser")
-        self.setMinimumSize(400, 300)
+        self.setMinimumSize(800, 600)
         self.fetcher_thread = None
         self.local_api = ClassificationIndex()
         self.met_api = MetAPI()
