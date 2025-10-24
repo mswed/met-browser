@@ -14,8 +14,6 @@ OPTIONS = {
         "src.ui.worker",
     ],
     "iconfile": None,
-    "codesign_identity": "-",  # Ad-hoc signing
-    "no_strip": True,  # Don't strip binaries (can cause issues)
     "plist": {
         "CFBundleName": "Met Browser",
         "CFBundleDisplayName": "Met Browser",
