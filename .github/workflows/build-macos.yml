@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-13 # Intel runner
+    runs-on: macos-13
     timeout-minutes: 60
 
     steps:
@@ -17,13 +17,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11" # Use 3.11 instead of 3.13 for better compatibility
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-          pip install loguru pyside6 requests tqdm
+          pip install loguru pyside6==6.5.3 requests tqdm  # Use PySide6 6.5.3
 
       - name: Build with PyInstaller
         run: |
@@ -49,6 +49,6 @@ jobs:
       - name: Upload App
         uses: actions/upload-artifact@v4
         with:
-          name: Met-Browser-macOS-Intel
+          name: Met-Browser-macOS-BigSur
           path: Met-Browser.zip
           retention-days: 30
