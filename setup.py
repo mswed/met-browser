@@ -13,7 +13,9 @@ OPTIONS = {
         "src.ui.widgets",
         "src.ui.worker",
     ],
-    "iconfile": None,  # Add path to .icns file if you have one
+    "iconfile": None,
+    "codesign_identity": "-",  # Ad-hoc signing
+    "no_strip": True,  # Don't strip binaries (can cause issues)
     "plist": {
         "CFBundleName": "Met Browser",
         "CFBundleDisplayName": "Met Browser",

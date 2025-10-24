@@ -25,36 +25,28 @@ jobs:
           pip install py2app
           pip install loguru pyside6 requests tqdm
 
-      - name: Build app
-        run: python setup.py py2app
+      - name: Build app (alias mode for testing)
+        run: python setup.py py2app -A
 
-      - name: Ad-hoc sign the app
+      - name: Fix permissions
+        run: chmod -R 755 "dist/Met Browser.app"
+
+      - name: Ad-hoc sign everything
         run: |
+          find "dist/Met Browser.app" -type f \( -name "*.so" -or -name "*.dylib" \) -exec codesign --force --sign - {} \;
           codesign --force --deep --sign - "dist/Met Browser.app"
 
-      - name: Create DMG
+      - name: Verify signature
+        run: codesign --verify --verbose "dist/Met Browser.app" || true
+
+      - name: Zip the app
         run: |
-          brew install create-dmg
-          create-dmg \
-            --volname "Met Browser" \
-            --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --app-drop-link 425 120 \
-            "Met-Browser.dmg" \
-            "dist/Met Browser.app" || true
+          cd dist
+          zip -r "../Met-Browser.zip" "Met Browser.app"
 
-      - name: Upload App Bundle
+      - name: Upload App
         uses: actions/upload-artifact@v4
         with:
-          name: Met-Browser-App
-          path: dist/Met Browser.app
-          retention-days: 30
-
-      - name: Upload DMG (if created)
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: Met-Browser-DMG
-          path: "*.dmg"
+          name: Met-Browser-macOS
+          path: Met-Browser.zip
           retention-days: 30
