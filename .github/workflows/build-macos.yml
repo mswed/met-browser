@@ -25,19 +25,17 @@ jobs:
           pip install py2app
           pip install loguru pyside6 requests tqdm
 
-      - name: Build app (alias mode for testing)
-        run: python setup.py py2app -A
+      - name: Build app (FULL BUILD - no -A flag)
+        run: python setup.py py2app
 
-      - name: Fix permissions
-        run: chmod -R 755 "dist/Met Browser.app"
-
-      - name: Ad-hoc sign everything
+      - name: Ad-hoc sign the app
         run: |
-          find "dist/Met Browser.app" -type f \( -name "*.so" -or -name "*.dylib" \) -exec codesign --force --sign - {} \;
           codesign --force --deep --sign - "dist/Met Browser.app"
 
-      - name: Verify signature
-        run: codesign --verify --verbose "dist/Met Browser.app" || true
+      - name: Verify app structure
+        run: |
+          ls -la "dist/Met Browser.app/Contents/MacOS/"
+          ls -la "dist/Met Browser.app/Contents/Resources/"
 
       - name: Zip the app
         run: |
