@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 import json
 from loguru import logger
 from src.api.met_api import MetAPI
@@ -12,7 +13,7 @@ class ImageRecordCache:
 
     def __init__(self) -> None:
         self.api = MetAPI()
-        self.cache_path = get_app_data_dir()
+        self.cache_path = get_app_data_dir() / "image_cache.json"
 
     def save_cache(self, progress_callback=None):
         """

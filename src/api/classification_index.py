@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import List, Optional, Dict
 from src.dir_utils.dirs import get_app_data_dir
 
@@ -11,7 +12,7 @@ class ClassificationIndex:
     def __init__(self, index_path=None) -> None:
         if index_path is None:
             # Default to our index path
-            index_path = get_app_data_dir()
+            index_path = get_app_data_dir() / "classification_index.json"
 
         self.index_path = index_path
         self.data = self.load_index()
