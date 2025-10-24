@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13 # Intel runner
     timeout-minutes: 60
 
     steps:
@@ -41,10 +41,6 @@ jobs:
         run: |
           codesign --force --deep --sign - --timestamp=none "dist/Met Browser.app"
 
-      - name: Verify app was created
-        run: |
-          ls -la "dist/Met Browser.app/Contents/MacOS/"
-
       - name: Zip the app
         run: |
           cd dist
@@ -53,6 +49,6 @@ jobs:
       - name: Upload App
         uses: actions/upload-artifact@v4
         with:
-          name: Met-Browser-macOS
+          name: Met-Browser-macOS-Intel
           path: Met-Browser.zip
           retention-days: 30
