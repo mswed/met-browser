@@ -4,7 +4,16 @@ APP = ["src/main.py"]
 DATA_FILES = [("data", ["data/classification_index.json", "data/image_cache.json"])]
 OPTIONS = {
     "argv_emulation": False,
-    "packages": ["PySide6", "loguru", "requests", "tqdm"],
+    "packages": [
+        "PySide6",
+        "loguru",
+        "requests",
+        "tqdm",
+        "jaraco.text",  # Add this
+        "jaraco.functools",  # And this
+        "jaraco.context",  # And this
+        "more_itertools",  # And this
+    ],
     "includes": [
         "src.ui.main_window",
         "src.api.met_api",
