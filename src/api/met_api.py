@@ -26,7 +26,7 @@ class MetAPI:
             logger.error(f"Failed to fetch record {record_id}")
             raise ConnectionError(f"Failed to fetch record {record_id}")
 
-    def get_all_records_with_images(self) -> set[int]:
+    def get_all_records_with_images(self, progress_callback=None) -> set[int]:
         """
         Fetch all of the records that have an image
         """
@@ -60,15 +60,16 @@ class MetAPI:
             "y",
             "z",
         ]
-        for letter in tqdm(abc):
+        for i, letter in enumerate(abc):
+            if progress_callback:
+                progress_callback(i + 1, len(abc), f"Searching for letter {letter}")
             response = requests.get(
                 f"{BASE_URL}/public/collection/v1/search?hasImages=true&q={letter}"
             )
 
             if response.status_code == 200:
                 found = response.json().get("objectIDs")
-                for f in found:
-                    records.add(f)
+                records.update(found)
 
                 logger.info(f"Collected {len(list(records))} records")
             else:

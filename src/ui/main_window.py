@@ -206,6 +206,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_results = []
         self.setup_progress_bar()
         self.set_ui()
+        self.create_menubar()
         self.setStyleSheet("""
                     QMainWindow {
                         background-color: #f5f5f5;
@@ -353,6 +354,84 @@ class MainWindow(QtWidgets.QMainWindow):
         self.results_list.setSpacing(0)
         self.results_list.currentItemChanged.connect(self.on_result_item_selected)
         results_layout.addWidget(self.results_list)
+
+    def create_menubar(self):
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu("File")
+        quit_action = QtGui.QAction("Quit", self)
+        quit_action.setShortcut(QtGui.QKeySequence("Ctrl+Q"))
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+
+        tools_menu = menubar.addMenu("Tools")
+        refresh_cache_action = QtGui.QAction("Refresh Image Cache...", self)
+        refresh_cache_action.triggered.connect(self.refresh_image_cache)
+        tools_menu.addAction(refresh_cache_action)
+
+    def refresh_image_cache(self):
+        # Using a custom dialog to match Mac standards a little better
+        msg = QtWidgets.QMessageBox(self)
+        msg.setIcon(QtWidgets.QMessageBox.Question)
+        msg.setWindowTitle("Refresh Image Cache")
+        msg.setText("This will rebuild the cache of records with images.")
+        msg.setInformativeText("This takes a couple of minutes. Continue?")
+
+        rebuild_btn = msg.addButton("Rebuild", QtWidgets.QMessageBox.AcceptRole)
+        cancel_btn = msg.addButton("Cancel", QtWidgets.QMessageBox.RejectRole)
+
+        msg.setDefaultButton(cancel_btn)
+
+        msg.exec()
+
+        if msg.clickedButton() == rebuild_btn:
+            self.rebuild_cache()
+
+    def rebuild_cache(self):
+        # We will iterate over all letters
+        self.progress_bar.setMaximum(26)
+        self.progress_bar.setValue(0)
+        self.progress_bar.show()
+
+        # Disable the UI (at least partly)
+        self.classifications_list.setEnabled(False)
+        self.results_list.setEnabled(False)
+
+        def progress_callback(current, total, message):
+            self.progress_bar.setValue(current)
+            self.statusBar().showMessage(message)
+            # We want to keep the UI responsive
+            QtWidgets.QApplication.processEvents()
+
+        try:
+            # Fetch the new cache
+            self.image_cache.save_cache(progress_callback=progress_callback)
+
+            # Load it into the app
+            self.records_with_images = self.image_cache.load_cache()
+
+            self.progress_bar.hide()
+            self.statusBar().showMessage(
+                f"Cache rebuilt {len(self.records_with_images)} records with images",
+                5000,
+            )
+
+            QtWidgets.QMessageBox.information(
+                self, "Cache rebuilt", "Image cache updated!"
+            )
+
+            # Refresh the count badges
+            self.on_has_images_toggle()
+
+        except Exception as e:
+            self.progress_bar.hide()
+            QtWidgets.QMessageBox.critical(
+                self, "Cache rebuild failed!", f"Failed to rebuild cache {e}"
+            )
+        finally:
+            # Reenable to UI
+            self.classifications_list.setEnabled(True)
+            self.results_list.setEnabled(True)
+            self.progress_bar.hide()
 
     def on_classification_item_selected(self, current, previous):
         if not current:

@@ -11,9 +11,11 @@ class ImageRecordCache:
         self.project_root = Path(__file__).parent.parent.parent
         self.cache_path = self.project_root / "data" / "image_cache.json"
 
-    def save_cache(self):
+    def save_cache(self, progress_callback=None):
         logger.info(f"Saving cache to {self.cache_path}")
-        record_ids = self.api.get_all_records_with_images()
+        record_ids = self.api.get_all_records_with_images(
+            progress_callback=progress_callback
+        )
 
         data = {
             "updated_on": datetime.now().isoformat(),
