@@ -39,13 +39,18 @@ abc = [
     "z",
 ]
 for letter in abc:
+    print(f"searching for {letter}")
     all_search_records = requests.get(
-        f"{BASE_URL}/public/collection/v1/search?q={letter}&hasImages=true"
+        f"{BASE_URL}/public/collection/v1/search?hasImages=true&q={letter}"
     )
 
     found = all_search_records.json().get("objectIDs")
     for f in found:
         records.add(f)
+    print(f"We now have {len(list(records))} records")
 
+search_for = 81706
+if search_for in records:
+    print("----------------> FOUND IT!")
 records_list = list(records)
 print("found", len(records_list), "records with images")

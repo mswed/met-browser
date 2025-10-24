@@ -2,6 +2,7 @@ from PySide6 import QtGui, QtWidgets, QtCore
 import requests
 from src.api.classification_index import ClassificationIndex
 from src.api.met_api import MetAPI
+from src.api.image_record_cache import ImageRecordCache
 from pprint import pprint
 
 
@@ -10,14 +11,19 @@ class Image(QtWidgets.QLabel):
     Display an image in the UI
     """
 
-    def __init__(self, size=(200, 200), parent=None):
+    def __init__(self, size=(200, 200), public_domain=False, parent=None):
         super().__init__(parent=parent)
+        self.public_domain = public_domain
         self.setFixedSize(*size)
         self.setAlignment(QtCore.Qt.AlignCenter)
         self.setScaledContents(False)
         self.setText("loading...")
 
     def load_image_from_url(self, image_url):
+        if self.public_domain is False:
+            self.setText("Image Not In Public Domain")
+            return
+
         if not image_url:
             self.setText("No Image")
             return
@@ -32,6 +38,7 @@ class Image(QtWidgets.QLabel):
             if pixmap.isNull():
                 self.setText("Invalid Image")
                 return
+
             scaled_pixmap = pixmap.scaled(
                 self.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
             )
@@ -54,7 +61,7 @@ class ResultWidget(QtWidgets.QWidget):
 
         image_column = QtWidgets.QVBoxLayout()
         main_layout.addLayout(image_column)
-        image = Image()
+        image = Image(public_domain=self.data.get("isPublicDomain"))
         image.load_image_from_url(self.data.get("primaryImageSmall"))
         image_column.addWidget(image)
 
@@ -67,10 +74,14 @@ class ResultWidget(QtWidgets.QWidget):
 
         medium_label = QtWidgets.QLabel(self.data.get("medium"))
         department_label = QtWidgets.QLabel(self.data.get("department"))
+        id_label = QtWidgets.QLabel(str(self.data.get("objectID")))
+        public_domain_label = QtWidgets.QLabel(str(self.data.get("isPublicDomain")))
 
         data_column.addWidget(title_label)
         data_column.addWidget(medium_label)
         data_column.addWidget(department_label)
+        data_column.addWidget(id_label)
+        data_column.addWidget(public_domain_label)
 
         date_column = QtWidgets.QVBoxLayout()
         main_layout.addLayout(date_column)
@@ -82,7 +93,7 @@ class ClassifictionWidget(QtWidgets.QWidget):
     def __init__(self, classification, record_ids, main_window, parent=None):
         super().__init__(parent=parent)
         self.classification = classification
-        self.record_ids = record_ids
+        self.record_ids = set(record_ids)
         self.main_window = main_window
         self.setup_ui()
 
@@ -93,11 +104,9 @@ class ClassifictionWidget(QtWidgets.QWidget):
     @property
     def filtered_record_ids(self):
         if self.main_window.has_images.isChecked():
-            return list(
-                set(self.main_window.records_with_images) & set(self.record_ids)
-            )
+            return list(self.main_window.records_with_images & self.record_ids)
         else:
-            return self.record_ids
+            return list(self.record_ids)
 
     def setup_ui(self):
         main_layout = QtWidgets.QHBoxLayout()
@@ -125,7 +134,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(400, 300)
         self.local_api = ClassificationIndex()
         self.met_api = MetAPI()
-        self.records_with_images = self.met_api.get_all_records_with_images()
+        self.image_cache = ImageRecordCache()
+        self.records_with_images = self.image_cache.load_cache()
+        self.current_results = []
         self.set_ui()
 
     def set_ui(self):
@@ -198,17 +209,21 @@ class MainWindow(QtWidgets.QMainWindow):
         details_layout.addWidget(details_label)
 
     def on_classification_item_selected(self, current, previous):
+        self.statusBar().showMessage("Loading results...")
+
+        # Clear existing results
+        self.current_results = []
         self.results_list.clear()
+
         widget = self.classifications_list.itemWidget(current)
-        # target_records = self.local_api.get_records_in_classification(current.text())
+
         for record in widget.filtered_record_ids[:80]:
             result = self.met_api.get_single_record(record)
-            pprint(result)
-            item = QtWidgets.QListWidgetItem(self.results_list)
-            item_widget = ResultWidget(result)
-            item.setSizeHint(item_widget.sizeHint())
-            self.results_list.setItemWidget(item, item_widget)
-            item.setData(QtCore.Qt.UserRole, result)
+            if result:
+                self.current_results.append(result)
+                pprint(result)
+
+        self.populate_results()
 
     def on_result_item_selected(self, current, previous):
         pprint(current.data(QtCore.Qt.UserRole))
@@ -220,3 +235,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if widget:
                 widget.update_count()
+
+    def populate_results(self):
+        self.results_list.clear()
+        sort_results = self.sort_results()
+
+        for result in sort_results:
+            item = QtWidgets.QListWidgetItem(self.results_list)
+            item_widget = ResultWidget(result)
+            item.setSizeHint(item_widget.sizeHint())
+            self.results_list.setItemWidget(item, item_widget)
+            item.setData(QtCore.Qt.UserRole, result)
+
+        self.statusBar().showMessage(f"Loaded {len(sort_results)} results")
+
+    def sort_results(self, direction="ascending"):
+        return sorted(
+            self.current_results,
+            key=lambda x: x.get("objectBeginDate", 0),
+            reverse=direction != "ascending",
+        )

@@ -1,4 +1,5 @@
 import requests
+from tqdm import tqdm
 from loguru import logger
 
 BASE_URL = "https://collectionapi.metmuseum.org"
@@ -25,15 +26,49 @@ class MetAPI:
             logger.error(f"Failed to fetch record {record_id}")
             return {}
 
-    def get_all_records_with_images(self) -> list[int]:
+    def get_all_records_with_images(self) -> set[int]:
         """
         Fetch all of the records that have an image
         """
         logger.info("Fetching all records with images")
-        params = {"q": "*", "hasImages": "true"}
-        response = requests.get(f"{BASE_URL}{self.search_url}", params=params)
-        if response.status_code == 200:
-            return set(response.json()["objectIDs"])
-        else:
-            logger.error("Failed to fetch all records with images")
-            return []
+        records = set()
+        abc = [
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h",
+            "i",
+            "j",
+            "k",
+            "l",
+            "m",
+            "n",
+            "o",
+            "p",
+            "q",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v",
+            "w",
+            "x",
+            "y",
+            "z",
+        ]
+        for letter in tqdm(abc):
+            all_search_records = requests.get(
+                f"{BASE_URL}/public/collection/v1/search?hasImages=true&q={letter}"
+            )
+
+            found = all_search_records.json().get("objectIDs")
+            for f in found:
+                records.add(f)
+
+            logger.info(f"Collected {len(list(records))} records")
+
+        return records
