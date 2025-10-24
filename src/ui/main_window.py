@@ -111,16 +111,35 @@ class ClassifictionWidget(QtWidgets.QWidget):
 
     def setup_ui(self):
         main_layout = QtWidgets.QHBoxLayout()
+        main_layout.setContentsMargins(8, 4, 8, 4)
+        main_layout.setSpacing(8)
         self.setLayout(main_layout)
 
         classification_label = QtWidgets.QLabel(self.classification)
         font = classification_label.font()
         font.setBold(True)
+        font.setPointSize(10)
         classification_label.setFont(font)
-
-        self.count_label = QtWidgets.QLabel(str(self.count))
-
+        # Split long classifications into two lines
+        classification_label.setWordWrap(True)
+        classification_label.setMaximumHeight(34)
         main_layout.addWidget(classification_label)
+        main_layout.addStretch()
+
+        # Count badge
+        self.count_label = QtWidgets.QLabel(str(self.count))
+        self.count_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.count_label.setMinimumWidth(30)
+        self.count_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #e0e0e0;
+                        color: #555;
+                        border-radius: 10px;
+                        padding: 2px 8px;
+                        font-size: 11px;
+                    }
+                """)
+
         main_layout.addWidget(self.count_label)
 
     def update_count(self):
@@ -141,6 +160,62 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_results = []
         self.setup_progress_bar()
         self.set_ui()
+        self.setStyleSheet("""
+                    QMainWindow {
+                        background-color: #f5f5f5;
+                    }
+                    QListWidget {
+                        background-color: white;
+                        border: 1px solid #d0d0d0;
+                        border-radius: 6px;
+                        outline: none;
+                    }
+                    QListWidget::item {
+                        border-bottom: 1px solid #f0f0f0;
+                        padding: 2px;
+                    }
+                    QListWidget::item:selected {
+                        background-color: #0066cc;
+                        color: white;
+                    }
+                    QListWidget::item:hover {
+                        background-color: #e8e8e8;
+                    }
+                    QLineEdit {
+                        padding: 6px 8px;
+                        border: 1px solid #d0d0d0;
+                        border-radius: 6px;
+                        background-color: white;
+                        font-size: 13px;
+                    }
+                    QLineEdit:focus {
+                        border: 2px solid #0066cc;
+                    }
+                    QCheckBox {
+                        font-size: 13px;
+                        spacing: 6px;
+                    }
+                    QComboBox {
+                        padding: 7px 8px;
+                        border: 1px solid #d0d0d0;
+                        border-radius: 6px;
+                        background-color: white;
+                        font-size: 13px;
+                    }
+                    QPushButton {
+                        padding: 4px 12px;
+                        border: 1px solid #d0d0d0;
+                        border-radius: 6px;
+                        background-color: white;
+                        font-size: 13px;
+                    }
+                    QPushButton:hover {
+                        background-color: #e8e8e8;
+                    }
+                    QPushButton:pressed {
+                        background-color: #d0d0d0;
+                    }
+                """)
 
     def setup_progress_bar(self):
         self.progress_bar = QtWidgets.QProgressBar()
@@ -153,6 +228,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_ui(self):
         # Main widget setup
         main_layout = QtWidgets.QHBoxLayout()
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
         main_widget = QtWidgets.QWidget()
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
@@ -164,32 +241,33 @@ class MainWindow(QtWidgets.QMainWindow):
         # Classifications column
         classifications_column = QtWidgets.QWidget()
         classification_layout = QtWidgets.QVBoxLayout()
+        classification_layout.setContentsMargins(0, 0, 0, 0)
+        classification_layout.setSpacing(8)
         classifications_column.setLayout(classification_layout)
         columns_layout.addWidget(classifications_column)
 
         # Label
         classification_label = QtWidgets.QLabel("Classifications")
-        classification_layout.addWidget(classification_label)
+        title_font = classification_label.font()
+        title_font.setBold(True)
+        title_font.setPointSize(13)
+        classification_label.setFont(title_font)
 
-        # Top search filter
-        search_widget = QtWidgets.QWidget()
-        search_layout = QtWidgets.QHBoxLayout()
-        search_widget.setLayout(search_layout)
         self.search_field = QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter Classifications...")
         self.search_field.setClearButtonEnabled(True)
         self.search_field.textChanged.connect(self.filter_classifications)
+
         self.has_images = QtWidgets.QCheckBox("Has Images")
         self.has_images.checkStateChanged.connect(self.on_has_images_toggle)
-        search_layout.addWidget(self.search_field)
-        search_layout.addWidget(self.has_images)
-        classification_layout.addWidget(search_widget)
 
         self.classifications_list = QtWidgets.QListWidget()
+        self.classifications_list.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.classifications_list.setAlternatingRowColors(False)
         self.classifications_list.currentItemChanged.connect(
             self.on_classification_item_selected
         )
-        classification_layout.addWidget(self.classifications_list)
+
         for key, value in sorted(
             self.local_api.get_classification_list().items(), key=lambda x: x[0].lower()
         ):
@@ -198,6 +276,11 @@ class MainWindow(QtWidgets.QMainWindow):
             item_widget = ClassifictionWidget(key, records, main_window=self)
             item.setSizeHint(item_widget.sizeHint())
             self.classifications_list.setItemWidget(item, item_widget)
+
+        classification_layout.addWidget(classification_label)
+        classification_layout.addWidget(self.search_field)
+        classification_layout.addWidget(self.has_images)
+        classification_layout.addWidget(self.classifications_list)
 
         # Results column
         results_column = QtWidgets.QWidget()
