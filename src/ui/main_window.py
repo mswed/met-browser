@@ -121,7 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.search_field.textChanged.connect(self.filter_classifications)
 
         self.has_images = QtWidgets.QCheckBox("Has Images")
-        self.has_images.checkStateChanged.connect(self.on_has_images_toggle)
+        self.has_images.stateChanged.connect(self.on_has_images_toggle)
 
         self.classifications_list = QtWidgets.QListWidget()
         self.classifications_list.setFrameShape(QtWidgets.QFrame.NoFrame)
