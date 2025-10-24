@@ -19,10 +19,13 @@ class Image(QtWidgets.QLabel):
         self.setAlignment(QtCore.Qt.AlignCenter)
         self.setScaledContents(False)
         self.setText("loading...")
+        self.setStyleSheet(
+            "color: gray; font-size: 10px; background: #f9f9f9; border-radius: 4px;"
+        )
 
     def load_image_from_url(self, image_url):
         if self.public_domain is False:
-            self.setText("Image Not In Public Domain")
+            self.setText("Image Not In  The Public Domain")
             return
 
         if not image_url:
@@ -44,6 +47,7 @@ class Image(QtWidgets.QLabel):
                 self.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
             )
 
+            # We have an image style and set propery
             self.setPixmap(scaled_pixmap)
         except Exception as e:
             self.setText("Error Loading Image")
@@ -54,40 +58,77 @@ class ResultWidget(QtWidgets.QWidget):
     def __init__(self, data, parent=None):
         super().__init__(parent=parent)
         self.data = data
+        self.is_public_domain = self.data.get("isPublicDomain", False)
         self.setup_ui()
+        self.setStyleSheet("""
+            ResultWidget {
+                background-color: white;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            ResultWidget:hover {
+                background-color: #f5f5f5;
+            }
+        """)
 
     def setup_ui(self):
         main_layout = QtWidgets.QHBoxLayout()
+        main_layout.setContentsMargins(12, 8, 12, 8)
+        main_layout.setSpacing(12)
         self.setLayout(main_layout)
 
-        image_column = QtWidgets.QVBoxLayout()
-        main_layout.addLayout(image_column)
+        # Left column (Image)
         image = Image(public_domain=self.data.get("isPublicDomain"))
         image.load_image_from_url(self.data.get("primaryImageSmall"))
-        image_column.addWidget(image)
+        main_layout.addWidget(image)
 
+        # Middle column (Text data)
         data_column = QtWidgets.QVBoxLayout()
+        data_column.setSpacing(4)
+        data_column.setAlignment(QtCore.Qt.AlignTop)
         main_layout.addLayout(data_column)
-        title_label = QtWidgets.QLabel(self.data.get("title"))
+
+        # Title
+        title = self.data.get("title", "Untitled") or "Untitled"
+        title_label = QtWidgets.QLabel(title)
         font = title_label.font()
         font.setBold(True)
+        font.setPointSize(13)
         title_label.setFont(font)
+        title_label.setWordWrap(True)
+        title_label.setStyleSheet("color: #000;")
 
-        medium_label = QtWidgets.QLabel(self.data.get("medium"))
-        department_label = QtWidgets.QLabel(self.data.get("department"))
-        id_label = QtWidgets.QLabel(str(self.data.get("objectID")))
-        public_domain_label = QtWidgets.QLabel(str(self.data.get("isPublicDomain")))
+        # Artist
+        artist = (
+            self.data.get("artistDisplayName", "Unknown Artist") or "Unknown Artist"
+        )
+        artist_label = QtWidgets.QLabel(artist)
+        artist_label.setStyleSheet("color: #666; font-size: 12px;")
+
+        # Medium
+        medium = self.data.get("medium", "Unknown Medium") or "Unknown Medium"
+        display_medium = medium[:50] + "..." if len(medium) > 50 else medium
+        medium_label = QtWidgets.QLabel(display_medium)
+        medium_label = QtWidgets.QLabel(display_medium)
+        medium_label.setToolTip(medium)
+        medium_label.setStyleSheet("color: #999; font-size: 11px;")
+
+        # Department
+        department_label = QtWidgets.QLabel(self.data.get("department", ""))
+        department_label.setStyleSheet(
+            "color: #0066cc; font-size: 11px; font-weight: 500;"
+        )
 
         data_column.addWidget(title_label)
+        data_column.addWidget(artist_label)
         data_column.addWidget(medium_label)
         data_column.addWidget(department_label)
-        data_column.addWidget(id_label)
-        data_column.addWidget(public_domain_label)
+        data_column.addStretch()
 
-        date_column = QtWidgets.QVBoxLayout()
-        main_layout.addLayout(date_column)
-        date_label = QtWidgets.QLabel(self.data.get("objectDate"))
-        date_column.addWidget(date_label)
+        date_label = QtWidgets.QLabel(self.data.get("objectDate", ""))
+        date_label.setWordWrap(True)
+        date_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignRight)
+        date_label.setStyleSheet("color: #999; font-size: 11px;")
+        main_layout.addWidget(date_label)
 
 
 class ClassifictionWidget(QtWidgets.QWidget):
@@ -285,10 +326,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # Results column
         results_column = QtWidgets.QWidget()
         results_layout = QtWidgets.QVBoxLayout()
+        results_layout.setContentsMargins(0, 0, 0, 0)
+        results_layout.setSpacing(8)
         results_column.setLayout(results_layout)
         columns_layout.addWidget(results_column)
 
         sorting_label = QtWidgets.QLabel("Sort By Date")
+        sorting_font = sorting_label.font()
+        sorting_font.setBold(True)
+        sorting_font.setPointSize(13)
+        sorting_label.setFont(sorting_font)
         self.sorting_combo = QtWidgets.QComboBox()
         self.sorting_combo.addItems(["Ascending", "Descending"])
         self.sorting_combo.currentIndexChanged.connect(self.populate_results)
@@ -297,6 +344,8 @@ class MainWindow(QtWidgets.QMainWindow):
         results_layout.addWidget(self.sorting_combo)
 
         self.results_list = QtWidgets.QListWidget()
+        self.results_list.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.results_list.setSpacing(0)
         self.results_list.currentItemChanged.connect(self.on_result_item_selected)
         results_layout.addWidget(self.results_list)
 
